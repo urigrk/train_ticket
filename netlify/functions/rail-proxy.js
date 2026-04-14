@@ -1,5 +1,10 @@
 const UPSTREAM = "https://rail-api.rail.co.il/common/api/v1/TripReservation";
 
+function sanitizeCookie(cookie) {
+  // Strip Domain so the browser stores it under our origin, not rail-api.rail.co.il
+  return cookie.split(";").filter((p) => !p.trim().toLowerCase().startsWith("domain")).join(";");
+}
+
 exports.handler = async (event) => {
   const tail = event.path.replace(/^\/rail-api\/?/, "");
   const url = `${UPSTREAM}/${tail}`;
@@ -28,10 +33,10 @@ exports.handler = async (event) => {
 
   const setCookies = res.headers.getSetCookie?.();
   if (setCookies?.length) {
-    multiValueHeaders["Set-Cookie"] = setCookies;
+    multiValueHeaders["Set-Cookie"] = setCookies.map(sanitizeCookie);
   } else {
     const sc = res.headers.get("set-cookie");
-    if (sc) headers["Set-Cookie"] = sc;
+    if (sc) headers["Set-Cookie"] = sanitizeCookie(sc);
   }
 
   return { statusCode: res.status, headers, multiValueHeaders, body };
